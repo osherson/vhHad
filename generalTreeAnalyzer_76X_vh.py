@@ -15,45 +15,59 @@ from array import *
 
 ROOT.gSystem.Load('libCondFormatsBTagObjects') 
 
+#options
 from optparse import OptionParser
 parser = OptionParser()
 
+#directory where input files are located
 parser.add_option("-f", "--pathIn", dest="inputFile",
                   help="inputFile path")
 
+#name of output file
 parser.add_option("-o", "--outName", dest="outName",
                   help="output file name")
 
+#number of the first file to run over in the group
 parser.add_option("-i", "--min", dest="min", 
 		  help="input index low end")
 
+#number of the last file to run over in the group
 parser.add_option("-j", "--max", dest="max", 
 		  help="input index high end")
 
+#location of .txt file with the name of all the files in the input directory
 parser.add_option("-l", "--file", dest="txt", 
 		  help="input txt file")
 
+#whether to cut on the trigger or not
 parser.add_option("-t", "--trigger", dest="trigger", 
 		  help="bool for trigger cut")
 
+#whether to cut on jet kinematics or not
 parser.add_option("-k", "--jets", dest="jets", 
 		  help="bool for jet cuts")
 
+#whether to use delta eta cut or not
 parser.add_option("-d", "--deta", dest="deta", 
 		  help="bool for delta eta cut")
 
+#whether we're running on data or MC
 parser.add_option("-m", "--isMC", dest="isMC", 
 		  help="bool for is MC")
 
+#cross section of MC
 parser.add_option("-x", "--xsec", dest="xsec", 
 		  help="cross section")
 
+#systematic if we're calculating one
 parser.add_option("-S", "--syst", dest="syst",
                   help="Systematic")
 
 
 (options, args) = parser.parse_args()
 
+#the following gets the file with the file names,
+#and names the output file according to yourName_MinNumberFile.root
 inputfile = options.txt 
 
 ff_n = 1000
@@ -77,24 +91,22 @@ histo_efficiency_2up=copy.copy(File_tr.Get("histo_efficiency_upper_2sigma"))
 histo_efficiency_2down=copy.copy(File_tr.Get("histo_efficiency_lower_2sigma"))
 File_tr.Close()
 
-
-def div_except(a, b):
+#useful functions
+def div_except(a, b): #divides two numbers unless b<= 0, then returns 1
     if b>0:
         return float(a)/b
     else:
         return 1
 
 
-def btagging_efficiency_medium(pt):
+def btagging_efficiency_medium(pt): #returns the btagging efficiency for the medium working point
    result = 0.898 + 0.0002254*pt -1.74e-6*pt*pt +2.71e-9*pt*pt*pt -1.39e-12*pt*pt*pt*pt
    return result	
 
-def trigger_function(histo_efficiency,htJet30=700):
+def trigger_function(histo_efficiency,htJet30=700): #returns trigger efficiency based on ht
     result = histo_efficiency.GetBinContent(htJet30)
     return result
 
-
-#defining functions
 def ClosestJet(jets, fourvec): #returns the index of the jet (from a collection "jets") closest to the given four-vector
 	DR = 9999.
 	index = -1
@@ -203,6 +215,7 @@ def deltaR( particle, jet ) : #gives deltaR between two particles
 
 print sys.argv[1]
 
+#creating output file and our tree
 f =  ROOT.TFile(outputfilename, 'recreate')
 
 f.cd()
@@ -210,7 +223,6 @@ f.cd()
 
 myTree =  ROOT.TTree('myTree', 'myTree')
 
-#first tree (boosted case)
 #creating the tree objects we need
 jet1pt = array('f', [-100.0])
 jet2pt = array('f', [-100.0])
@@ -376,16 +388,18 @@ myTree.Branch('jetSJpt', jetSJpt,'jetSJpt[4]/F')
 myTree.Branch('jetSJcsv',jetSJcsv,'jetSJcsv[4]/F')
 myTree.Branch('jetSJeta',jetSJeta,'jetSJeta[4]/F')
 
+#input files we'll run over
 files_list	= open_files( inputfile )
 #nevent = treeMine.GetEntries();
 
-#list of histograms that may be useful
+#list of histograms for cut flow
 bbj = ROOT.TH1F("bbj", "Before any cuts", 3, -0.5, 1.5)
 bb0 = ROOT.TH1F("bb0", "After Json", 3, -0.5, 1.5)
 bb1 = ROOT.TH1F("bb1", "After Trigger", 3, -0.5, 1.5)
 bb2 = ROOT.TH1F("bb2", "After jet cuts", 3, -0.5, 1.5)
 bb3 = ROOT.TH1F("bb3", "After Delta Eta cuts", 3, -0.5, 1.5)
 
+#scale factor calculation tools
 calib = ROOT.BTagCalibration("csvv2","/uscms_data/d3/cvernier/DiH_13TeV/optimization/Alphabet-76x/CSVv2_subjet.csv")
 readerHF = ROOT.BTagCalibrationReader(calib,0, "lt","central")  # 0 is for loose op
 readerHFup = ROOT.BTagCalibrationReader(calib, 0,"lt", "up")  # 0 is for loose op
@@ -515,6 +529,7 @@ for i in range(num1, num2):
         trigWeight2Down[0] = trigger_function(histo_efficiency_2down, int(round(hT)))                     
         #json for data
         bbj.Fill(triggerpassbb[0])
+        #requiring event pass json_silver if it's data
         if Data and treeMine.json_silver < 1:
             continue		
         bb0.Fill(triggerpassbb[0])
@@ -585,7 +600,7 @@ for i in range(num1, num2):
                             
                         
 
-	if options.jets and len(jets) < 2: # two jets with pt > 30 and |eta| < 2.5
+	if options.jets and len(jets) < 2: #requiring two jets with pt > 30 and |eta| < 2.5
 		continue
 
         bb2.Fill(triggerpassbb[0])
@@ -598,7 +613,7 @@ for i in range(num1, num2):
 		idxH1 = 0
 		idxH2 = 1
 			
-	if options.deta and (idxH1 < 0 or idxH2 <0) : continue
+	if options.deta and (idxH1 < 0 or idxH2 <0) : continue #requiring delta eta between jets < 1.3
   
         bb3.Fill(triggerpassbb[0])
 
