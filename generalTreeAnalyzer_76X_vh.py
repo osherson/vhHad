@@ -571,7 +571,7 @@ for i in range(num1, num2):
 			    jettemp*=correction_factor
 	
 	
-	    if jettemp.Pt() > 300. and abs(jettemp.Eta()) < 2.4: 	
+	    if jettemp.Pt() > 200. and abs(jettemp.Eta()) < 2.4: 	
                     jets.append(jettemp)
 		    if fjUngroomedTau1[j] > 0:
 			    jet_tau.append(fjUngroomedTau2[j]/fjUngroomedTau1[j])
